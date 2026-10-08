@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Regression System</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=IM+Fell+English:ital@0;1&family=Special+Elite&display=swap">
+<style>
+/* Layout: config column on the left, tabbed report on the right; stacks to one column on phones. Single aged-paper look carried over from the Streamlit app. */
+:root{
+  color-scheme:light;
+  --paper:#f2ead8; --card:#ede3cc; --panel:#e8dcc4; --hover:#d9ccb0;
+  --ink:#1a1208; --sepia:#372e1e; --brown:#5c3d1e; --edge:#8b7355; --faded:#c9b99a; --red:#8b1a1a;
+  --display:'Playfair Display','Times New Roman',serif;
+  --body:'IM Fell English',Georgia,serif;
+  --mono:'Special Elite','Courier New',monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;
+  background-image:repeating-linear-gradient(0deg,transparent,transparent 28px,rgba(55,46,30,.04) 28px,rgba(55,46,30,.04) 29px)}
+.wrap{display:grid;grid-template-columns:290px minmax(0,1fr);gap:24px;max-width:1280px;margin:0 auto;padding-inline:16px;padding-block:20px}
+@media(max-width:820px){.wrap{grid-template-columns:minmax(0,1fr)}}
+aside{background:var(--panel);border:1px solid var(--edge);padding:16px;align-self:start;display:flex;flex-direction:column;gap:10px}
+main{min-width:0}
+.hero{font-family:var(--display);font-weight:900;font-size:clamp(1.6rem,4vw,2.8rem);line-height:1.1;text-align:center;text-wrap:balance;
+  border-top:4px double var(--ink);border-bottom:4px double var(--ink);padding:.5rem 0;margin:0 0 .3rem}
+aside .hero{font-size:1.4rem}
+.sub{color:var(--brown);font:.72rem var(--mono);letter-spacing:.22em;text-transform:uppercase;text-align:center;border-bottom:1px solid var(--edge);padding-bottom:.6rem;margin:0 0 1rem}
+.sec{font:.66rem var(--mono);text-transform:uppercase;letter-spacing:.28em;color:var(--brown);border-top:2px solid var(--ink);border-bottom:1px solid var(--edge);padding:.35rem 0;margin:1.5rem 0 1rem;text-align:center}
+aside .sec{margin:.6rem 0 .2rem}
+label{display:block;font-size:.9rem;color:var(--sepia)}
+select,input[type=number],input[type=file]{width:100%;background:var(--card);border:1px solid var(--edge);color:var(--ink);font:1rem var(--body);padding:.45rem .5rem;border-radius:0}
+input[type=file]{border:2px dashed var(--edge);font-size:.8rem}
+.radio label,.checks label{display:flex;gap:.5rem;align-items:center;padding:.15rem 0}
+button{background:var(--card);border:1px solid var(--edge);color:var(--ink);font:.74rem var(--mono);letter-spacing:.12em;padding:.6rem 1rem;cursor:pointer;box-shadow:2px 2px 0 rgba(26,18,8,.2)}
+button:hover{background:var(--hover);border-color:var(--ink)}
+:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.train{background:var(--ink);color:var(--paper);border:2px solid var(--ink);letter-spacing:.2em;width:100%}
+.train:hover{background:var(--sepia)}
+.note{border:1px solid var(--edge);background:var(--card);padding:.5rem .7rem;font-size:.88rem}
+.tabs{display:flex;flex-wrap:wrap;background:var(--panel);border-bottom:2px solid var(--ink)}
+.tabs button{box-shadow:none;border:0;border-right:1px solid var(--edge);background:var(--panel);color:var(--brown)}
+.tabs button[aria-selected=true]{background:var(--sepia);color:var(--paper)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--edge);border-top:3px solid var(--ink);padding:1rem;text-align:center;box-shadow:2px 2px 0 rgba(26,18,8,.12);min-width:0}
+.card .l{color:var(--brown);font:.62rem var(--mono);text-transform:uppercase;letter-spacing:.18em;border-bottom:1px solid var(--faded);padding-bottom:.3rem;margin-bottom:.4rem}
+.card .v{font:700 1.6rem var(--display);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.scroll{overflow:auto;border:1px solid var(--edge);max-height:320px}
+table{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numeric:tabular-nums}
+th,td{padding:.3rem .6rem;border-bottom:1px solid var(--faded);text-align:right;white-space:nowrap}
+th{position:sticky;top:0;background:var(--panel);font:.68rem var(--mono);letter-spacing:.08em;color:var(--sepia)}
+td:first-child,th:first-child{text-align:left}
+.heat td{text-align:center;border:2px solid var(--paper)}
+.fig{background:var(--card);border:1px solid var(--edge);padding:8px}
+.fig svg{display:block;width:100%;height:auto}
+.legend{font-size:.8rem;color:var(--sepia);text-align:center}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.eq{background:var(--panel);border:1px solid var(--edge);border-left:4px solid var(--ink);padding:1rem 1.2rem;font:.88rem var(--mono);overflow-wrap:anywhere}
+.rec{background:var(--card);border:1px solid var(--edge);padding:.9rem 1.1rem;margin-bottom:.6rem;color:var(--sepia)}
+.rec strong{font-family:var(--display);color:var(--ink)}
+.bar{display:grid;grid-template-columns:minmax(80px,160px) 1fr 56px;gap:8px;align-items:center;font-size:.85rem;margin:.35rem 0}
+.bar i{display:block;height:16px;background:var(--sepia)}
+.specs{text-align:center;background:var(--panel);border:1px solid var(--edge);padding:.5rem;font-size:.88rem;margin-top:.8rem}
+.inputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:1rem}
+</style>
+
+</head>
+<body style="margin:0">
+<div class="wrap">
+<aside>
+  <div class="hero">REGRESSION</div>
+  <div class="sub" style="margin:0">Smart Data Insight System</div>
+  <div class="sec">Data source</div>
+  <div class="radio">
+    <label><input type="radio" name="src" id="srcSample" value="s" checked> Sample House Dataset</label>
+    <label><input type="radio" name="src" id="srcCsv" value="c"> Upload CSV</label>
+  </div>
+  <input type="file" id="file" accept=".csv,text/csv" hidden>
+  <div class="note" id="loaded"></div>
+  <div class="sec">Model config</div>
+  <label for="regType">Regression Type</label>
+  <select id="regType"><option>Simple Linear</option><option selected>Multiple Linear</option></select>
+  <label for="target">Target (Y)</label><select id="target"></select>
+  <label id="featLabel">Features (X)</label><div id="feats"></div>
+  <div class="sec">Train</div>
+  <button class="train" id="trainBtn">TRAIN MODEL</button>
+  <div class="note" id="status" hidden></div>
+</aside>
+<main>
+  <h1 class="hero">Smart Regression &amp; Data Insight</h1>
+  <p class="sub">House Price Prediction · Horus University</p>
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <section id="t0"></section><section id="t1" hidden></section><section id="t2" hidden></section><section id="t3" hidden></section><section id="t4" hidden></section>
+</main>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=(v,d=0)=>Number(v).toLocaleString('en-US',{maximumFractionDigits:d,minimumFractionDigits:d});
+const cmp=new Intl.NumberFormat('en',{notation:'compact',maximumFractionDigits:2});
+function rng(seed){let a=seed>>>0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const S={cols:[],rows:[],num:[],m:null};
+
+function sampleData(){
+  const r=rng(42),ri=(a,b)=>a+Math.floor(r()*(b-a)),norm=()=>Math.sqrt(-2*Math.log(1-r()))*Math.cos(2*Math.PI*r());
+  const rows=[];
+  for(let i=0;i<200;i++){
+    const sqm=ri(50,400),bed=ri(1,6),bath=ri(1,4),age=ri(0,50),gar=ri(0,3);
+    const p=Math.max(sqm*1500+bed*8000+bath*5000-age*1500+gar*10000+norm()*25000,50000);
+    rows.push([sqm,bed,bath,age,gar,Math.trunc(p)]);
+  }
+  return {cols:['SqM','Bedrooms','Bathrooms','Age_Years','Garage_Cars','Price'],rows};
+}
+function parseCSV(txt){
+  const out=[];let row=[],cur='',q=false;
+  for(let i=0;i<txt.length;i++){const c=txt[i];
+    if(q){if(c==='"'){if(txt[i+1]==='"'){cur+='"';i++}else q=false}else cur+=c}
+    else if(c==='"')q=true;
+    else if(c===','){row.push(cur);cur=''}
+    else if(c==='\n'||c==='\r'){if(c==='\r'&&txt[i+1]==='\n')i++;row.push(cur);cur='';if(row.some(x=>x!==''))out.push(row);row=[]}
+    else cur+=c}
+  row.push(cur);if(row.some(x=>x!==''))out.push(row);
+  const cols=out.shift().map(s=>s.trim());
+  const rows=out.map(r=>cols.map((_,j)=>{const v=(r[j]??'').trim();if(v===''||/^(na|nan|null)$/i.test(v))return null;const n=Number(v);return Number.isFinite(n)?n:v}));
+  return {cols,rows};
+}
+function setData(d,name){
+  S.cols=d.cols;S.rows=d.rows;S.m=null;
+  S.num=d.cols.map((_,j)=>j).filter(j=>{let any=false;for(const r of d.rows){if(r[j]===null)continue;if(typeof r[j]!=='number')return false;any=true}return any});
+  $('loaded').textContent=`Loaded ${name}: ${d.rows.length} rows × ${d.cols.length} cols`;
+  $('target').innerHTML=S.num.map(j=>`<option value="${j}">${esc(S.cols[j])}</option>`).join('');
+  $('target').value=S.num[S.num.length-1];
+  buildFeats();renderData();
+  if(S.num.length<2){say('This file needs at least two numeric columns.');renderModel();return}
+  train();
+}
+function buildFeats(){
+  const t=+$('target').value,pool=S.num.filter(j=>j!==t),simple=$('regType').value==='Simple Linear';
+  $('featLabel').textContent=simple?'Feature (X)':'Features (X)';
+  $('feats').innerHTML=simple
+    ?`<select id="featOne" aria-label="Feature">${pool.map(j=>`<option value="${j}">${esc(S.cols[j])}</option>`).join('')}</select>`
+    :`<div class="checks">${pool.map((j,i)=>`<label><input type="checkbox" id="f_${j}" value="${j}" ${i<3?'checked':''}> ${esc(S.cols[j])}</label>`).join('')}</div>`;
+}
+function chosen(){const o=$('featOne');return o?(o.value===''?[]:[+o.value]):[...document.querySelectorAll('#feats input:checked')].map(e=>+e.value)}
+function say(t){$('status').hidden=false;$('status').textContent=t}
+
+function solve(A,b){const n=b.length;
+  for(let i=0;i<n;i++){let p=i;for(let k=i+1;k<n;k++)if(Math.abs(A[k][i])>Math.abs(A[p][i]))p=k;
+    if(Math.abs(A[p][i])<1e-10)return null;[A[i],A[p]]=[A[p],A[i]];[b[i],b[p]]=[b[p],b[i]];
+    for(let k=i+1;k<n;k++){const f=A[k][i]/A[i][i];for(let j=i;j<n;j++)A[k][j]-=f*A[i][j];b[k]-=f*b[i]}}
+  const x=Array(n).fill(0);for(let i=n-1;i>=0;i--){let s=b[i];for(let j=i+1;j<n;j++)s-=A[i][j]*x[j];x[i]=s/A[i][i]}return x}
+function train(){
+  const F=chosen(),t=+$('target').value;
+  if(!F.length){say('Pick at least one feature.');return}
+  const rows=S.rows.filter(r=>r[t]!==null&&F.every(j=>r[j]!==null));
+  const r=rng(42),idx=rows.map((_,i)=>i);for(let i=idx.length-1;i>0;i--){const k=Math.floor(r()*(i+1));[idx[i],idx[k]]=[idx[k],idx[i]]}
+  const nt=Math.ceil(rows.length*.2),te=idx.slice(0,nt).map(i=>rows[i]),tr=idx.slice(nt).map(i=>rows[i]);
+  if(tr.length<=F.length+1){say('Not enough complete rows to train.');return}
+  const p=F.length+1,A=Array.from({length:p},()=>Array(p).fill(0)),b=Array(p).fill(0);
+  for(const row of tr){const x=[1,...F.map(j=>row[j])];for(let i=0;i<p;i++){b[i]+=x[i]*row[t];for(let j=0;j<p;j++)A[i][j]+=x[i]*x[j]}}
+  const w=solve(A,b);if(!w){say('These features are collinear. Remove one and train again.');return}
+  const Xt=te.map(row=>F.map(j=>row[j])),y=te.map(row=>row[t]),yp=Xt.map(x=>predict(w,x));
+  const mean=y.reduce((a,v)=>a+v,0)/y.length,sse=y.reduce((a,v,i)=>a+(v-yp[i])**2,0),sst=y.reduce((a,v)=>a+(v-mean)**2,0);
+  const err=y.map((v,i)=>Math.abs(v-yp[i]));let best=0;err.forEach((e,i)=>{if(e<err[best])best=i});
+  S.m={w,F,t,names:F.map(j=>S.cols[j]),target:S.cols[t],Xt,y,yp,r2:1-sse/sst,mse:sse/y.length,mae:err.reduce((a,v)=>a+v,0)/y.length,err,best};
+  say(`Model trained on ${tr.length} rows, tested on ${te.length}.`);renderModel();
+}
+const predict=(w,x)=>x.reduce((a,v,i)=>a+v*w[i+1],w[0]);
+
+/* ---------- charts ---------- */
+function ticks(a,b,n=5){if(a===b){a-=1;b+=1}const raw=(b-a)/n,p=10**Math.floor(Math.log10(raw)),f=raw/p,st=(f<1.5?1:f<3.5?2:f<7.5?5:10)*p,o=[];
+  for(let v=Math.ceil(a/st)*st;v<=b+st*1e-9;v+=st)o.push(+v.toPrecision(12));return o}
+function plot(o){
+  const W=o.w||720,H=o.h||320,L=64,R=18,T=34,B=46;
+  let xs=[],ys=[];for(const l of o.layers){if(l.pts)for(const q of l.pts){xs.push(q[0]);ys.push(q[1])}if(l.bins)for(const q of l.bins){xs.push(q[0],q[1]);ys.push(0,q[2])}}
+  let x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  const px=(x1-x0||1)*.05,py=(y1-y0||1)*.06;x0-=px;x1+=px;if(!o.zero)y0-=py;y1+=py;
+  const X=v=>L+(v-x0)/(x1-x0)*(W-L-R),Y=v=>H-B-(v-y0)/(y1-y0)*(H-T-B);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.title)}"><rect x="${L}" y="${T}" width="${W-L-R}" height="${H-T-B}" fill="#f2ead8" stroke="#8b7355"/>`;
+  s+=`<text x="${W/2}" y="20" text-anchor="middle" font-family="Playfair Display,serif" font-weight="700" font-size="14" fill="#1a1208">${esc(o.title)}</text>`;
+  for(const v of ticks(x0,x1,6))s+=`<line x1="${X(v)}" x2="${X(v)}" y1="${H-B}" y2="${H-B+4}" stroke="#8b7355"/><text x="${X(v)}" y="${H-B+16}" text-anchor="middle" font-size="10" fill="#372e1e">${cmp.format(v)}</text>`;
+  for(const v of ticks(y0,y1,5))s+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#8b7355" stroke-opacity=".18"/><text x="${L-6}" y="${Y(v)+3}" text-anchor="end" font-size="10" fill="#372e1e">${cmp.format(v)}</text>`;
+  s+=`<text x="${(L+W-R)/2}" y="${H-8}" text-anchor="middle" font-size="11" fill="#372e1e">${esc(o.xl)}</text><text transform="translate(14 ${(T+H-B)/2}) rotate(-90)" text-anchor="middle" font-size="11" fill="#372e1e">${esc(o.yl)}</text>`;
+  for(const l of o.layers){
+    if(l.type==='pts')for(const q of l.pts)s+=`<circle cx="${X(q[0]).toFixed(1)}" cy="${Y(q[1]).toFixed(1)}" r="3" fill="${l.color}" fill-opacity=".55"/>`;
+    if(l.type==='line')s+=`<polyline points="${l.pts.map(q=>X(q[0]).toFixed(1)+','+Y(q[1]).toFixed(1)).join(' ')}" fill="none" stroke="${l.color}" stroke-width="${l.sw||1.5}" ${l.dash?'stroke-dasharray="6 4"':''}/>`;
+    if(l.type==='star')for(const q of l.pts)s+=`<text x="${X(q[0])}" y="${Y(q[1])}" text-anchor="middle" dominant-baseline="central" font-size="22" fill="#8b1a1a">★</text>`;
+    if(l.type==='bars')for(const q of l.bins)s+=`<rect x="${X(q[0])}" y="${Y(q[2])}" width="${Math.max(0,X(q[1])-X(q[0])-1)}" height="${Y(0)-Y(q[2])}" fill="#5c3d1e" fill-opacity=".75"/>`;
+  }
+  return `<div class="fig">${s}</svg>${o.legend?`<div class="legend">${o.legend}</div>`:''}</div>`;
+}
+
+/* ---------- rendering ---------- */
+const sec=t=>`<div class="sec">${t}</div>`;
+const card=(l,v)=>`<div class="card"><div class="l">${esc(l)}</div><div class="v">${v}</div></div>`;
+const tbl=(head,rows)=>`<div class="scroll"><table><thead><tr>${head.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+const cell=v=>v===null?'':typeof v==='number'?fmt(v,Number.isInteger(v)?0:2):esc(v);
+function renderData(){
+  const miss=S.rows.reduce((a,r)=>a+r.filter(v=>v===null).length,0);
+  let h=sec('Dataset overview')+`<div class="cards">${card('Rows',S.rows.length)+card('Columns',S.cols.length)+card('Missing',miss)+card('Numeric',S.num.length)}</div>`;
+  h+=sec('Data table (first 50 rows)')+tbl(S.cols,S.rows.slice(0,50).map(r=>r.map(cell)));
+  const colv=S.num.map(j=>S.rows.map(r=>r[j]).filter(v=>v!==null).sort((a,b)=>a-b));
+  const qt=(a,p)=>{const i=(a.length-1)*p,f=Math.floor(i);return a[f]+(a[Math.min(f+1,a.length-1)]-a[f])*(i-f)};
+  const st=colv.map(a=>{const m=a.reduce((x,v)=>x+v,0)/a.length;return[a.length,m,Math.sqrt(a.reduce((x,v)=>x+(v-m)**2,0)/(a.length-1||1)),a[0],qt(a,.25),qt(a,.5),qt(a,.75),a[a.length-1]]});
+  h+=sec('Statistical summary')+tbl(['',...S.num.map(j=>S.cols[j])],['count','mean','std','min','25%','50%','75%','max'].map((n,i)=>[n,...st.map(s=>fmt(s[i],i?2:0))]));
+  const corr=(a,b)=>{let n=0,sa=0,sb=0,saa=0,sbb=0,sab=0;for(const r of S.rows){const x=r[a],y=r[b];if(x===null||y===null)continue;n++;sa+=x;sb+=y;saa+=x*x;sbb+=y*y;sab+=x*y}return(n*sab-sa*sb)/Math.sqrt((n*saa-sa*sa)*(n*sbb-sb*sb))};
+  const mix=t=>{const a=[251,243,213],b=[110,50,10];return`rgb(${a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(',')})`};
+  h+=sec('Correlation matrix')+`<div class="scroll" style="max-height:none"><table class="heat"><thead><tr><th></th>${S.num.map(j=>`<th>${esc(S.cols[j])}</th>`).join('')}</tr></thead><tbody>${
+    S.num.map((a,i)=>`<tr><td>${esc(S.cols[a])}</td>${S.num.map((b,k)=>{if(k>=i)return'<td></td>';const c=corr(a,b),t=(c+1)/2;return`<td style="background:${mix(t)};color:${t>.55?'#f2ead8':'#1a1208'}">${c.toFixed(2)}</td>`}).join('')}</tr>`).join('')}</tbody></table></div>`;
+  $('t0').innerHTML=h;
+}
+function renderModel(){
+  const m=S.m,need='<p class="note" style="margin-top:1.5rem">Train the model first (left panel).</p>';
+  if(!m){for(const i of[1,2,3,4])$('t'+i).innerHTML=need;return}
+  const res=m.y.map((v,i)=>v-m.yp[i]),lo=Math.min(...m.y,...m.yp),hi=Math.max(...m.y,...m.yp);
+  // Visualization
+  let h=sec('Actual vs predicted')+plot({title:'Actual vs Predicted Values',xl:'Actual '+m.target,yl:'Predicted '+m.target,
+    layers:[{type:'line',pts:[[lo,lo],[hi,hi]],color:'#5c3d1e',dash:1},{type:'pts',pts:m.y.map((v,i)=>[v,m.yp[i]]),color:'#372e1e'},{type:'star',pts:[[m.y[m.best],m.yp[m.best]]]}],
+    legend:'● Predictions &nbsp; <span style="color:#8b1a1a">★</span> Best prediction &nbsp; ┄ Perfect fit'});
+  const r0=Math.min(...res),r1=Math.max(...res),bw=(r1-r0)/25||1,bins=Array.from({length:25},(_,i)=>[r0+i*bw,r0+(i+1)*bw,0]);
+  for(const v of res)bins[Math.min(24,Math.floor((v-r0)/bw))][2]++;
+  h+=sec('Residuals distribution')+`<div class="two">${plot({w:480,h:300,title:'Residuals vs Fitted',xl:'Predicted Values',yl:'Residuals',layers:[{type:'pts',pts:m.yp.map((v,i)=>[v,res[i]]),color:'#8b1a1a'},{type:'line',pts:[[Math.min(...m.yp),0],[Math.max(...m.yp),0]],color:'#1a1208',dash:1}]})}${
+    plot({w:480,h:300,zero:1,title:'Residual Distribution',xl:'Residual',yl:'Count',layers:[{type:'bars',bins}]})}</div>`;
+  const imp=m.w.slice(1).map(Math.abs),tot=imp.reduce((a,v)=>a+v,0)||1,pct=imp.map(v=>v/tot*100);
+  if(m.F.length===1){const xs=m.Xt.map(x=>x[0]),a=Math.min(...xs),b=Math.max(...xs);
+    h+=sec('Regression line')+plot({title:m.names[0]+'  →  '+m.target,xl:m.names[0],yl:m.target,layers:[{type:'pts',pts:xs.map((v,i)=>[v,m.y[i]]),color:'#372e1e'},{type:'line',pts:[[a,predict(m.w,[a])],[b,predict(m.w,[b])]],color:'#8b1a1a',sw:2}],legend:'● Data &nbsp; <span style="color:#8b1a1a">━</span> Regression line'});
+  }else{const ord=pct.map((_,i)=>i).sort((a,b)=>pct[b]-pct[a]),mx=Math.max(...pct);
+    h+=sec('Feature importance (|coefficient|)')+`<div class="fig" style="padding:14px">${ord.map(i=>`<div class="bar"><span>${esc(m.names[i])}</span><i style="width:${pct[i]/mx*100}%"></i><span>${pct[i].toFixed(1)}%</span></div>`).join('')}</div>`}
+  $('t1').innerHTML=h;
+  // Evaluation
+  h=sec('Model performance metrics')+`<div class="cards">${card('R² score',m.r2.toFixed(4))+card('MSE',fmt(m.mse))+card('RMSE',fmt(Math.sqrt(m.mse)))+card('MAE',fmt(m.mae))}</div>`;
+  const eq=m.F.length===1?`Y = ${m.w[1].toFixed(4)} × ${esc(m.names[0])}  +  ${m.w[0].toFixed(4)}`:`Y = ${m.w[0].toFixed(2)}  +  ${m.names.map((n,i)=>`(${m.w[i+1].toFixed(4)} × ${esc(n)})`).join('  +  ')}`;
+  h+=sec('Regression equation')+`<div class="eq">${eq}</div>`;
+  h+=sec('Best prediction details')+`<div class="cards">${card('Actual '+m.target,'$'+fmt(m.y[m.best]))+card('Predicted '+m.target,'$'+fmt(m.yp[m.best]))+card('Absolute error','$'+fmt(m.err[m.best]))}</div>
+    <p class="specs"><strong>Specs for best prediction:</strong> ${m.names.map((n,i)=>esc(n)+': '+fmt(m.Xt[m.best][i],1)).join(' | ')}</p>`;
+  const co=[['Intercept',m.w[0]],...m.names.map((n,i)=>[n,m.w[i+1]])].sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]));
+  h+=sec('Coefficients table')+tbl(['Feature','Coefficient'],co.map(c=>[esc(c[0]),fmt(c[1],4)]));
+  h+=sec('Sample predictions (first 10 test points)')+tbl(['#','Actual '+m.target,'Predicted '+m.target,'Error','Error %'],m.y.slice(0,10).map((v,i)=>[i,fmt(v),fmt(m.yp[i]),fmt(v-m.yp[i]),(Math.abs(v-m.yp[i])/Math.abs(v)*100).toFixed(1)]));
+  $('t2').innerHTML=h;
+  // Recommendations
+  const r=m.r2,r3=r.toFixed(3),fit=+r.toFixed(4)>=1?`<strong>Perfect fit</strong> — R² = ${r3}. The model explains 100% of the variance.`:r>=.95?`<strong>Nearly perfect fit</strong> — R² = ${r3}. The model is exceptionally accurate.`:r>=.85?`<strong>Excellent fit</strong> — R² = ${r3}.`:r>=.7?`<strong>Good fit</strong> — R² = ${r3}.`:r>=.5?`<strong>Moderate fit</strong> — R² = ${r3}.`:`<strong>Poor fit</strong> — R² = ${r3}.`;
+  h=sec('Intelligent recommendations')+`<div class="rec">${fit}</div>`;
+  if(m.F.length>1){const k=pct.indexOf(Math.max(...pct));h+=`<div class="rec"><strong>Most influential feature:</strong> ${esc(m.names[k])} (${pct[k].toFixed(1)}% weight).</div>`}
+  const miss=S.rows.reduce((a,row)=>a+row.filter(v=>v===null).length,0);
+  h+=`<div class="rec">${miss?`<strong>${miss} missing values found.</strong> Consider imputation.`:'<strong>Data quality is clean</strong> — no missing values detected.'}</div>`;
+  $('t3').innerHTML=h;
+  // Prediction
+  const means=m.F.map(j=>{const a=S.rows.map(row=>row[j]).filter(v=>v!==null);return a.reduce((x,v)=>x+v,0)/a.length});
+  $('t4').innerHTML=sec('Predict new house price')+`<p style="color:var(--brown)">Enter the details below to estimate the price using the trained model.</p>
+    <div class="inputs">${m.names.map((n,i)=>`<label>Enter ${esc(n)}<input type="number" step="any" id="p_${i}" value="${+means[i].toFixed(2)}"></label>`).join('')}</div>
+    <button id="predBtn">CALCULATE ESTIMATED PRICE</button><div id="predOut" style="max-width:400px;margin-top:1rem"></div>`;
+  $('predBtn').onclick=()=>{const x=m.names.map((_,i)=>+$('p_'+i).value);$('predOut').innerHTML=card('Estimated market value','<span style="font-size:2.4rem">$'+fmt(predict(m.w,x))+'</span>')};
+}
+
+/* ---------- wiring ---------- */
+const TABS=['Dataset','Visualization','Evaluation','Recommendations','Prediction'];
+$('tabs').innerHTML=TABS.map((t,i)=>`<button role="tab" id="tab${i}" aria-selected="${i===0}">${t}</button>`).join('');
+$('tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;TABS.forEach((_,i)=>{const on=b.id==='tab'+i;$('tab'+i).setAttribute('aria-selected',on);$('t'+i).hidden=!on})};
+$('regType').onchange=buildFeats;$('target').onchange=buildFeats;$('trainBtn').onclick=train;
+$('srcSample').onchange=()=>{$('file').hidden=true;setData(sampleData(),'sample houses')};
+$('srcCsv').onchange=()=>{$('file').hidden=false};
+$('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();
+  rd.onload=()=>{try{const d=parseCSV(String(rd.result));if(!d.rows.length)throw 0;setData(d,f.name)}catch{say('Could not read that CSV. Check that the first row holds column names.')}};rd.readAsText(f)};
+setData(sampleData(),'sample houses');
+</script>
+</body>
+</html>
